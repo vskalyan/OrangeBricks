@@ -1,0 +1,87 @@
+﻿@using System.Data.Entity.Core.Objects
+@using System.Globalization
+@using Microsoft.AspNet.Identity
+@using OrangeBricks.Web.Models
+@model OrangeBricks.Web.Controllers.Property.ViewModels.PropertiesViewModel
+
+@{
+    ViewBag.Title = "Properties For Sale";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Properties For Sale</h2>
+
+@using (Html.BeginForm("Index", "Property", FormMethod.Get, new { @class = "form-horizontal" }))
+{
+    <div class="form-group form-group-lg">
+        @Html.LabelFor(x => x.Search, "Search:", new { @class = "col-sm-2 control-label" })
+        <div class="col-sm-8">
+            @Html.TextBoxFor(m => m.Search, new { @class = "form-control", @placeholder = "Search by street or description..." })
+        </div>
+    <div class="col-sm-2">
+        <button type="submit" class="btn btn-default">Search</button>
+    </div>
+    </div>
+    
+}
+
+<p>@Model.Properties.Count properties matching your criteria...</p>
+
+@foreach (var property in Model.Properties)
+{
+    <hr />
+    <h3>@property.StreetName</h3>
+    <p>@property.NumberOfBedrooms bedroom @property.PropertyType</p>
+    <p>@property.Description</p>
+
+    var offers = property.Offers.Where(o => o.BuyerUserId == User.Identity.GetUserId()).ToList();
+
+    if (offers.Any())
+    {
+        <p><strong>Your Offers:</strong></p>
+        foreach (var offer in offers)
+        {
+        <strong>Offer Amount: </strong> @offer.Amount.ToString("C0", CultureInfo.CreateSpecificCulture("en-GB")) <br/>
+            <strong>Offer Status: </strong>@offer.Status <br/>
+
+            switch (offer.Status)
+            {
+                case OfferStatus.Accepted:
+                    <strong>Congratulations! Your offer has been accepted. You can proceed to Buy the property.</strong>
+                    break;
+                case OfferStatus.Pending:
+                    <strong>Your offer is currently being reviewed.</strong>
+                    break;
+                case OfferStatus.Rejected:
+                    <strong>We're Sorry! Your offer was not accepted. Feel free to make another offer.</strong>
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            <hr/>
+
+        }
+    }
+
+    var viewings = property.Viewings.Where(v => v.BuyerUserId == User.Identity.GetUserId()).ToList();
+
+    if (viewings.Any())
+    {
+        <p><strong> Your Viewing Requests: </strong></p>
+
+        foreach (var viewing in viewings)
+        {
+            <p>
+                Your viewing request placed on @viewing.CreatedAt is currently in a @viewing.Status status.
+            </p>
+        }
+    }
+
+
+    <a href="@Url.Action("MakeOffer", "Property", new {id = property.Id})" class="btn btn-primary">
+        Make Offer
+    </a>
+    <a href="@Url.Action("RequestViewing", "Property", new {id = property.Id})" class="btn btn-primary">
+        Request Viewing
+    </a>
+}
